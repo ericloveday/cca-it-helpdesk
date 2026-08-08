@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCA Tech Help — Manager Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+  :root{
+    --red:#ce1f07;
+    --black:#111111;
+    --white:#ffffff;
+    --gray-50:#f7f7f8;
+    --gray-100:#eeeeee;
+    --gray-300:#cccccc;
+    --gray-500:#888888;
+    --gray-700:#444444;
+    --amber:#c98a00;
+    --green:#1f7a3d;
+    --blue:#2a6ebb;
+    --shadow: 0 2px 10px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,0.14);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Montserrat',sans-serif;
+    background:var(--gray-50);
+    color:var(--black);
+  }
+  .topbar{
+    background:var(--black);
+    color:var(--white);
+    padding:14px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .topbar h1{font-size:18px;font-weight:800;margin:0;}
+  .topbar h1 span{color:var(--red);}
+  .user-chip{display:flex;align-items:center;gap:10px;font-size:13px;}
+  .user-chip img{width:28px;height:28px;border-radius:50%;border:2px solid var(--red);}
+  .signout-btn{
+    background:transparent;border:1px solid rgba(255,255,255,0.4);color:var(--white);
+    padding:6px 12px;border-radius:6px;font-family:'Montserrat',sans-serif;font-size:12px;
+    font-weight:600;cursor:pointer;
+  }
+  .signout-btn:hover{background:rgba(255,255,255,0.1);}
+
+  #signinScreen{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:80vh;text-align:center;padding:20px;
+  }
+  #signinScreen h2{font-size:22px;font-weight:800;margin-bottom:6px;}
+  #signinScreen p{color:var(--gray-700);margin-bottom:24px;max-width:400px;}
+  .google-btn{
+    display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--gray-300);
+    padding:12px 22px;border-radius:8px;font-family:'Montserrat',sans-serif;font-weight:600;font-size:15px;
+    cursor:pointer;box-shadow:var(--shadow);
+  }
+  .google-btn img{width:20px;height:20px;}
+  .domain-error{margin-top:16px;color:var(--red);font-weight:600;font-size:14px;max-width:400px;}
+
+  .wrap{max-width:1300px;margin:0 auto;padding:22px 20px 60px;display:none;}
+
+  /* Summary cards */
+  .summary-row{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+    gap:14px;
+    margin-bottom:22px;
+  }
+  .summary-card{
+    background:var(--white);
+    border-radius:12px;
+    padding:16px 18px;
+    box-shadow:var(--shadow);
+    border-left:4px solid var(--gray-300);
+  }
+  .summary-card .num{font-size:28px;font-weight:800;line-height:1;}
+  .summary-card .lbl{font-size:12px;color:var(--gray-700);font-weight:600;text-transform:uppercase;letter-spacing:0.3px;margin-top:4px;}
+  .summary-card.sc-new{border-left-color:var(--gray-700);}
+  .summary-card.sc-high{border-left-color:var(--red);}
+  .summary-card.sc-high .num{color:var(--red);}
+  .summary-card.sc-progress{border-left-color:var(--amber);}
+  .summary-card.sc-progress .num{color:var(--amber);}
+  .summary-card.sc-resolved{border-left-color:var(--green);}
+  .summary-card.sc-resolved .num{color:var(--green);}
+
+  .dup-alert{
+    background:#fff4e5;
+    border:1.5px solid var(--amber);
+    color:#7a4e00;
+    padding:12px 16px;
+    border-radius:9px;
+    font-size:13.5px;
+    font-weight:600;
+    margin-bottom:18px;
+    display:none;
+  }
+
+  .toolbar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-bottom:16px;
+    background:var(--white);
+    border-radius:10px;
+    padding:12px 14px;
+    box-shadow:var(--shadow);
+  }
+  .toolbar select, .toolbar input[type="text"]{
+    font-family:'Montserrat',sans-serif;
+    font-size:13px;
+    padding:8px 10px;
+    border:1.5px solid var(--gray-300);
+    border-radius:7px;
+  }
+  .toolbar .tabs{display:flex;gap:6px;margin-left:auto;}
+  .tab-btn{
+    background:var(--gray-100);
+    border:none;
+    padding:8px 14px;
+    border-radius:7px;
+    font-family:'Montserrat',sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    cursor:pointer;
+    color:var(--gray-700);
+  }
+  .tab-btn.active{background:var(--black);color:var(--white);}
+  .export-btn{
+    background:var(--red);
+    color:var(--white);
+    border:none;
+    padding:9px 16px;
+    border-radius:7px;
+    font-family:'Montserrat',sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    cursor:pointer;
+  }
+
+  table{width:100%;border-collapse:collapse;background:var(--white);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);}
+  thead th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    color:var(--gray-700);
+    padding:12px 14px;
+    background:var(--gray-50);
+    border-bottom:2px solid var(--gray-100);
+    cursor:pointer;
+    user-select:none;
+    white-space:nowrap;
+  }
+  thead th:hover{color:var(--black);}
+  tbody td{
+    padding:13px 14px;
+    border-bottom:1px solid var(--gray-100);
+    font-size:13.5px;
+    vertical-align:top;
+  }
+  tbody tr:hover{background:#fafafa;}
+  tbody tr.urgency-row-High{border-left:4px solid var(--red);}
+  tbody tr.urgency-row-Medium{border-left:4px solid var(--amber);}
+  tbody tr.urgency-row-Low{border-left:4px solid var(--green);}
+
+  .badge{display:inline-block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.3px;padding:4px 9px;border-radius:20px;}
+  .badge-high{background:#fdf1ef;color:var(--red);}
+  .badge-medium{background:#fdf7e8;color:var(--amber);}
+  .badge-low{background:#eef8f0;color:var(--green);}
+
+  .desc-cell{max-width:260px;}
+  .desc-text{color:var(--gray-700);font-size:12.5px;line-height:1.4;}
+  .teacher-name{font-weight:700;}
+  .teacher-email{font-size:11.5px;color:var(--gray-500);}
+
+  .age-pill{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--gray-100);color:var(--gray-700);white-space:nowrap;}
+  .age-pill.stale{background:#fdf1ef;color:var(--red);}
+
+  .status-select{
+    font-family:'Montserrat',sans-serif;
+    font-weight:700;
+    font-size:12px;
+    padding:6px 8px;
+    border-radius:6px;
+    border:1.5px solid var(--gray-300);
+    cursor:pointer;
+  }
+  .status-select.st-New{color:var(--gray-700);}
+  .status-select.st-Acknowledged{color:var(--blue);border-color:var(--blue);}
+  .status-select.st-InProgress{color:var(--amber);border-color:var(--amber);}
+  .status-select.st-Resolved{color:var(--green);border-color:var(--green);}
+
+  .notes-btn{
+    background:none;
+    border:1.5px solid var(--gray-300);
+    border-radius:6px;
+    padding:5px 9px;
+    font-size:11px;
+    font-weight:700;
+    cursor:pointer;
+    color:var(--gray-700);
+    white-space:nowrap;
+  }
+  .notes-btn.has-note{border-color:var(--black);color:var(--black);}
+
+  .empty-state{text-align:center;padding:50px 0;color:var(--gray-500);font-size:14px;}
+
+  /* Modal */
+  .modal-overlay{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.5);
+    align-items:center;justify-content:center;
+    z-index:100;
+    padding:20px;
+  }
+  .modal{
+    background:var(--white);
+    border-radius:14px;
+    padding:26px;
+    max-width:480px;
+    width:100%;
+    box-shadow:var(--shadow-lg);
+  }
+  .modal h3{margin:0 0 4px;font-size:17px;font-weight:800;}
+  .modal .modal-sub{font-size:12.5px;color:var(--gray-500);margin-bottom:16px;}
+  .modal textarea{
+    width:100%;min-height:100px;font-family:'Montserrat',sans-serif;font-size:14px;
+    padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:8px;resize:vertical;
+  }
+  .modal-actions{display:flex;gap:10px;margin-top:16px;justify-content:flex-end;}
+  .modal-btn{
+    padding:10px 18px;border-radius:8px;font-family:'Montserrat',sans-serif;font-weight:700;
+    font-size:13.5px;cursor:pointer;border:none;
+  }
+  .modal-btn.cancel{background:var(--gray-100);color:var(--gray-700);}
+  .modal-btn.save{background:var(--red);color:var(--white);}
+
+  @media(max-width:800px){
+    table, thead, tbody, th, td, tr{display:block;}
+    thead{display:none;}
+    tbody tr{margin-bottom:14px;border-radius:10px;box-shadow:var(--shadow);}
+    tbody td{border-bottom:none;padding:8px 14px;}
+    tbody td:before{content:attr(data-label);display:block;font-size:10px;font-weight:800;text-transform:uppercase;color:var(--gray-500);margin-bottom:2px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Tech Help <span>Manager</span></h1>
+  <div id="userChipArea"></div>
+</div>
+
+<div id="signinScreen">
+  <h2>IT Help Desk Dashboard</h2>
+  <p>Sign in with your Cornerstone Google account to view and manage tech help requests.</p>
+  <button class="google-btn" onclick="window.signIn()">
+    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
+    Sign in with Google
+  </button>
+  <div class="domain-error" id="domainError"></div>
+</div>
+
+<div class="wrap" id="mainApp">
+
+  <div class="summary-row">
+    <div class="summary-card sc-new"><div class="num" id="cntNew">0</div><div class="lbl">New</div></div>
+    <div class="summary-card sc-high"><div class="num" id="cntHigh">0</div><div class="lbl">High Open</div></div>
+    <div class="summary-card sc-progress"><div class="num" id="cntProgress">0</div><div class="lbl">In Progress</div></div>
+    <div class="summary-card"><div class="num" id="cntOpenTotal">0</div><div class="lbl">Total Open</div></div>
+    <div class="summary-card sc-resolved"><div class="num" id="cntResolved">0</div><div class="lbl">Resolved</div></div>
+  </div>
+
+  <div class="dup-alert" id="dupAlert"></div>
+
+  <div class="toolbar">
+    <select id="filterUrgency" onchange="render()">
+      <option value="">All Urgency</option>
+      <option value="High">High</option>
+      <option value="Medium">Medium</option>
+      <option value="Low">Low</option>
+    </select>
+    <select id="filterCategory" onchange="render()">
+      <option value="">All Categories</option>
+      <option value="Hardware">Hardware</option>
+      <option value="Software/App">Software/App</option>
+      <option value="Network/Wifi">Network/Wifi</option>
+      <option value="Projector/Display">Projector/Display</option>
+      <option value="Chromebook">Chromebook</option>
+      <option value="Account/Login">Account/Login</option>
+      <option value="Other">Other</option>
+    </select>
+    <input type="text" id="searchBox" placeholder="Search teacher or description..." oninput="render()">
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-active" onclick="setTab('active')">Active</button>
+      <button class="tab-btn" id="tab-archive" onclick="setTab('archive')">Resolved / Archive</button>
+    </div>
+    <button class="export-btn" onclick="exportCSV()">Export CSV</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th onclick="setSort('urgency')">Urgency</th>
+        <th onclick="setSort('teacherName')">Teacher</th>
+        <th onclick="setSort('category')">Category</th>
+        <th>Description</th>
+        <th onclick="setSort('createdAt')">Age</th>
+        <th>Status</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody id="reqTableBody"></tbody>
+  </table>
+  <div class="empty-state" id="emptyState" style="display:none;">Nothing here.</div>
+</div>
+
+<!-- Notes / Resolution Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">Internal Notes</h3>
+    <div class="modal-sub" id="modalSub"></div>
+    <textarea id="modalTextarea" placeholder="Type here..."></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn save" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ====================== CONFIGURATION ====================== */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "cca-it-helpdesk.firebaseapp.com",
+  databaseURL: "https://cca-it-helpdesk-default-rtdb.firebaseio.com",
+  projectId: "cca-it-helpdesk",
+  storageBucket: "cca-it-helpdesk.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const ALLOWED_DOMAIN = "cornerstonek12.org";
+
+// Restrict dashboard access to these accounts only (add more emails as needed)
+const AUTHORIZED_MANAGERS = [
+  "changeme@cornerstonek12.org"
+];
+
+const EMAILJS_PUBLIC_KEY = "5p2_YtAyJ4vQsjrtT";
+const EMAILJS_SERVICE_ID = "service_ze1dvgp";
+const EMAILJS_TEMPLATE_STATUS_TO_TEACHER = "template_ithelp_status";
+
+// Google Chat webhook (High urgency status updates only) - leave blank to disable
+const GOOGLE_CHAT_WEBHOOK_URL = "";
+/* ============================================================= */
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+let allRequests = {};
+let currentTab = 'active';
+let sortField = 'createdAt';
+let sortDir = 'desc';
+let modalMode = null; // 'notes' or 'resolve'
+let modalReqId = null;
+
+const STATUS_LABELS = {
+  "New": "New",
+  "Acknowledged": "Acknowledged",
+  "InProgress": "In Progress / Researching",
+  "Resolved": "Resolved"
+};
+const STATUS_ORDER = ["New", "Acknowledged", "InProgress", "Resolved"];
+
+window.signIn = function(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ hd: ALLOWED_DOMAIN });
+  auth.signInWithPopup(provider).catch(err => {
+    document.getElementById('domainError').textContent = "Sign-in error: " + err.message;
+  });
+};
+window.signOutUser = function(){ auth.signOut(); };
+
+auth.onAuthStateChanged(user => {
+  const domainErrorEl = document.getElementById('domainError');
+  domainErrorEl.textContent = "";
+
+  if(user){
+    const emailLower = (user.email || "").toLowerCase();
+    const authorized = AUTHORIZED_MANAGERS.map(e => e.toLowerCase()).includes(emailLower);
+    if(!emailLower.endsWith("@" + ALLOWED_DOMAIN) || !authorized){
+      domainErrorEl.textContent = "This account isn't authorized to view the manager dashboard.";
+      auth.signOut();
+      return;
+    }
+    document.getElementById('signinScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('userChipArea').innerHTML = `
+      <div class="user-chip">
+        <img src="${user.photoURL || ''}" onerror="this.style.display='none'">
+        <span>${user.displayName}</span>
+        <button class="signout-btn" onclick="window.signOutUser()">Sign out</button>
+      </div>`;
+    listenToRequests();
+  } else {
+    document.getElementById('signinScreen').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('userChipArea').innerHTML = '';
+  }
+});
+
+function listenToRequests(){
+  db.ref('helpRequests').on('value', snapshot => {
+    allRequests = snapshot.val() || {};
+    render();
+  });
+}
+
+window.setTab = function(tab){
+  currentTab = tab;
+  document.getElementById('tab-active').classList.toggle('active', tab === 'active');
+  document.getElementById('tab-archive').classList.toggle('active', tab === 'archive');
+  render();
+};
+
+window.setSort = function(field){
+  if(sortField === field){ sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+  else { sortField = field; sortDir = 'asc'; }
+  render();
+};
+
+const URGENCY_RANK = { High: 0, Medium: 1, Low: 2 };
+
+function normStatus(s){ return s.replace(/\s|\//g, ''); }
+
+function ageLabel(ts){
+  const diffMs = Date.now() - ts;
+  const hrs = diffMs / 3600000;
+  if(hrs < 1) return Math.round(diffMs/60000) + "m";
+  if(hrs < 24) return Math.round(hrs) + "h";
+  return Math.round(hrs/24) + "d";
+}
+function isStale(ts, urgency){
+  const hrs = (Date.now() - ts) / 3600000;
+  if(urgency === "High") return hrs > 4;
+  if(urgency === "Medium") return hrs > 24;
+  return hrs > 72;
+}
+
+function render(){
+  const urgencyFilter = document.getElementById('filterUrgency').value;
+  const categoryFilter = document.getElementById('filterCategory').value;
+  const search = document.getElementById('searchBox').value.toLowerCase();
+
+  let items = Object.entries(allRequests).map(([id, r]) => ({ id, ...r }));
+
+  items = items.filter(r => {
+    const isResolved = normStatus(r.status) === "Resolved";
+    if(currentTab === 'active' && isResolved) return false;
+    if(currentTab === 'archive' && !isResolved) return false;
+    if(urgencyFilter && r.urgency !== urgencyFilter) return false;
+    if(categoryFilter && r.category !== categoryFilter) return false;
+    if(search){
+      const hay = (r.teacherName + " " + r.description + " " + r.category).toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  items.sort((a,b) => {
+    let av, bv;
+    if(sortField === 'urgency'){ av = URGENCY_RANK[a.urgency]; bv = URGENCY_RANK[b.urgency]; }
+    else if(sortField === 'teacherName'){ av = a.teacherName; bv = b.teacherName; }
+    else if(sortField === 'category'){ av = a.category; bv = b.category; }
+    else { av = a.createdAt; bv = b.createdAt; }
+    if(av < bv) return sortDir === 'asc' ? -1 : 1;
+    if(av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // Default: within active tab, urgency then age (oldest first) unless user picked a different sort explicitly via header click
+  if(currentTab === 'active' && sortField === 'createdAt' && sortDir === 'desc'){
+    items.sort((a,b) => URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency] || a.createdAt - b.createdAt);
+  }
+
+  const tbody = document.getElementById('reqTableBody');
+  const emptyState = document.getElementById('emptyState');
+
+  if(items.length === 0){
+    tbody.innerHTML = '';
+    emptyState.style.display = 'block';
+  } else {
+    emptyState.style.display = 'none';
+    tbody.innerHTML = items.map(r => rowHtml(r)).join('');
+  }
+
+  updateSummary();
+  checkDuplicates();
+}
+
+function rowHtml(r){
+  const sNorm = normStatus(r.status);
+  const stale = isStale(r.createdAt, r.urgency) && sNorm !== "Resolved";
+  const statusOptions = STATUS_ORDER.map(s =>
+    `<option value="${s}" ${s === sNorm ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`
+  ).join('');
+
+  const hasNote = r.internalNotes && r.internalNotes.trim().length > 0;
+  const notesLabel = hasNote ? "Notes ✓" : "+ Note";
+
+  return `
+    <tr class="urgency-row-${r.urgency}">
+      <td data-label="Urgency"><span class="badge badge-${r.urgency.toLowerCase()}">${r.urgency}</span></td>
+      <td data-label="Teacher">
+        <div class="teacher-name">${escapeHtml(r.teacherName)}</div>
+        <div class="teacher-email">${escapeHtml(r.teacherEmail)}</div>
+      </td>
+      <td data-label="Category">${escapeHtml(r.category)}</td>
+      <td data-label="Description" class="desc-cell"><div class="desc-text">${escapeHtml(r.description)}</div></td>
+      <td data-label="Age"><span class="age-pill ${stale ? 'stale' : ''}">${ageLabel(r.createdAt)}${stale ? ' ⚠' : ''}</span></td>
+      <td data-label="Status">
+        <select class="status-select st-${sNorm}" onchange="window.changeStatus('${r.id}', this.value)">
+          ${statusOptions}
+        </select>
+      </td>
+      <td data-label="Notes">
+        <button class="notes-btn ${hasNote ? 'has-note' : ''}" onclick="window.openNotesModal('${r.id}')">${notesLabel}</button>
+      </td>
+    </tr>`;
+}
+
+window.changeStatus = function(id, newStatus){
+  if(newStatus === "Resolved"){
+    modalMode = 'resolve';
+    modalReqId = id;
+    document.getElementById('modalTitle').textContent = "Resolution Note";
+    document.getElementById('modalSub').textContent = "Required — briefly describe how this was fixed (builds a searchable history for next time).";
+    document.getElementById('modalTextarea').value = allRequests[id].resolutionNote || "";
+    document.getElementById('modalOverlay').style.display = 'flex';
+    return;
+  }
+  updateStatus(id, newStatus, null);
+};
+
+window.openNotesModal = function(id){
+  modalMode = 'notes';
+  modalReqId = id;
+  document.getElementById('modalTitle').textContent = "Internal Notes";
+  document.getElementById('modalSub').textContent = "Only visible on this dashboard — not sent to the teacher.";
+  document.getElementById('modalTextarea').value = allRequests[id].internalNotes || "";
+  document.getElementById('modalOverlay').style.display = 'flex';
+};
+
+window.closeModal = function(){
+  document.getElementById('modalOverlay').style.display = 'none';
+  modalMode = null; modalReqId = null;
+};
+
+window.saveModal = function(){
+  const text = document.getElementById('modalTextarea').value.trim();
+  if(modalMode === 'resolve'){
+    if(!text){ alert("Please add a short resolution note before marking this resolved."); return; }
+    updateStatus(modalReqId, "Resolved", text);
+  } else if(modalMode === 'notes'){
+    db.ref('helpRequests/' + modalReqId + '/internalNotes').set(text);
+  }
+  window.closeModal();
+};
+
+function updateStatus(id, newStatus, resolutionNote){
+  const req = allRequests[id];
+  const now = Date.now();
+  const updates = {
+    status: newStatus,
+    updatedAt: now
+  };
+  if(resolutionNote !== null){ updates.resolutionNote = resolutionNote; }
+
+  const history = req.statusHistory || [];
+  history.push({ status: newStatus, timestamp: now });
+  updates.statusHistory = history;
+
+  db.ref('helpRequests/' + id).update(updates).then(() => {
+    const friendlyMsg = {
+      "Acknowledged": "We've seen your request and it's in the queue.",
+      "InProgress": "We're actively working on / researching this now.",
+      "Resolved": "This has been resolved: " + (resolutionNote || "")
+    }[newStatus] || "Your request status was updated.";
+
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_STATUS_TO_TEACHER, {
+      to_email: req.teacherEmail,
+      teacher_name: req.teacherName,
+      status: STATUS_LABELS[newStatus],
+      category: req.category,
+      description: req.description,
+      urgency: req.urgency,
+      message: friendlyMsg
+    }).catch(e => console.error("Status email failed:", e));
+
+    if(req.urgency === "High" && GOOGLE_CHAT_WEBHOOK_URL){
+      fetch(GOOGLE_CHAT_WEBHOOK_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        body: JSON.stringify({
+          text: `Status update on HIGH urgency request from *${req.teacherName}*: now *${STATUS_LABELS[newStatus]}*`
+        })
+      }).catch(e => console.error("Chat webhook failed:", e));
+    }
+  });
+}
+
+function updateSummary(){
+  const items = Object.values(allRequests);
+  const openItems = items.filter(r => normStatus(r.status) !== "Resolved");
+  document.getElementById('cntNew').textContent = items.filter(r => r.status === "New").length;
+  document.getElementById('cntHigh').textContent = openItems.filter(r => r.urgency === "High").length;
+  document.getElementById('cntProgress').textContent = items.filter(r => normStatus(r.status) === "InProgress").length;
+  document.getElementById('cntOpenTotal').textContent = openItems.length;
+  document.getElementById('cntResolved').textContent = items.filter(r => normStatus(r.status) === "Resolved").length;
+}
+
+function checkDuplicates(){
+  const openItems = Object.values(allRequests).filter(r => normStatus(r.status) !== "Resolved");
+  const alerts = [];
+
+  // Same teacher, multiple open tickets
+  const byTeacher = {};
+  openItems.forEach(r => { byTeacher[r.teacherEmail] = (byTeacher[r.teacherEmail] || 0) + 1; });
+  Object.entries(byTeacher).forEach(([email, count]) => {
+    if(count > 1){
+      const name = openItems.find(r => r.teacherEmail === email).teacherName;
+      alerts.push(`${name} has ${count} open requests right now.`);
+    }
+  });
+
+  // Same category, multiple teachers, within last 24h (possible building-wide issue)
+  const recentCutoff = Date.now() - 24*3600000;
+  const byCategory = {};
+  openItems.filter(r => r.createdAt > recentCutoff).forEach(r => {
+    byCategory[r.category] = byCategory[r.category] || new Set();
+    byCategory[r.category].add(r.teacherEmail);
+  });
+  Object.entries(byCategory).forEach(([cat, teacherSet]) => {
+    if(teacherSet.size >= 3){
+      alerts.push(`${teacherSet.size} different teachers reported "${cat}" issues in the last 24 hours — may be building-wide.`);
+    }
+  });
+
+  const dupEl = document.getElementById('dupAlert');
+  if(alerts.length > 0){
+    dupEl.style.display = 'block';
+    dupEl.innerHTML = "⚠ " + alerts.join(" &nbsp;|&nbsp; ");
+  } else {
+    dupEl.style.display = 'none';
+  }
+}
+
+window.exportCSV = function(){
+  const items = Object.values(allRequests);
+  const rows = [["Teacher","Email","Category","Description","Urgency","Status","Created","Updated","Resolution Note"]];
+  items.forEach(r => {
+    rows.push([
+      r.teacherName, r.teacherEmail, r.category,
+      (r.description || "").replace(/\n/g," ").replace(/"/g,'""'),
+      r.urgency, STATUS_LABELS[normStatus(r.status)] || r.status,
+      new Date(r.createdAt).toLocaleString(),
+      new Date(r.updatedAt).toLocaleString(),
+      (r.resolutionNote || "").replace(/\n/g," ").replace(/"/g,'""')
+    ]);
+  });
+  const csv = rows.map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tech-help-requests-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || "";
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
