@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCA Tech Help Request</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+  :root{
+    --red:#ce1f07;
+    --black:#111111;
+    --white:#ffffff;
+    --gray-50:#f7f7f8;
+    --gray-100:#eeeeee;
+    --gray-300:#cccccc;
+    --gray-500:#888888;
+    --gray-700:#444444;
+    --amber:#c98a00;
+    --green:#1f7a3d;
+    --shadow: 0 2px 10px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Montserrat',sans-serif;
+    background:var(--gray-50);
+    color:var(--black);
+    min-height:100vh;
+  }
+  .topbar{
+    background:var(--black);
+    color:var(--white);
+    padding:16px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .topbar h1{
+    font-size:19px;
+    font-weight:800;
+    margin:0;
+    letter-spacing:0.3px;
+  }
+  .topbar h1 span{color:var(--red);}
+  .user-chip{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:14px;
+  }
+  .user-chip img{width:32px;height:32px;border-radius:50%;border:2px solid var(--red);}
+  .signout-btn{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.4);
+    color:var(--white);
+    padding:6px 12px;
+    border-radius:6px;
+    font-family:'Montserrat',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .signout-btn:hover{background:rgba(255,255,255,0.1);}
+
+  .container{
+    max-width:760px;
+    margin:0 auto;
+    padding:28px 20px 60px;
+  }
+
+  /* Sign-in screen */
+  #signinScreen{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-height:70vh;
+    text-align:center;
+    padding:20px;
+  }
+  #signinScreen h2{font-size:24px;font-weight:800;margin-bottom:6px;}
+  #signinScreen p{color:var(--gray-700);margin-bottom:28px;max-width:420px;}
+  .google-btn{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--white);
+    border:1px solid var(--gray-300);
+    padding:12px 22px;
+    border-radius:8px;
+    font-family:'Montserrat',sans-serif;
+    font-weight:600;
+    font-size:15px;
+    cursor:pointer;
+    box-shadow:var(--shadow);
+    transition:transform .1s ease;
+  }
+  .google-btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg);}
+  .google-btn img{width:20px;height:20px;}
+  .domain-error{
+    margin-top:18px;
+    color:var(--red);
+    font-weight:600;
+    font-size:14px;
+    max-width:420px;
+  }
+
+  /* Card */
+  .card{
+    background:var(--white);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    padding:26px;
+    margin-bottom:24px;
+  }
+  .card h2{
+    font-size:18px;
+    font-weight:800;
+    margin:0 0 4px;
+  }
+  .card .subtitle{
+    color:var(--gray-700);
+    font-size:13px;
+    margin:0 0 20px;
+  }
+  .greeting{
+    font-size:15px;
+    color:var(--gray-700);
+    margin-bottom:18px;
+  }
+  .greeting b{color:var(--black);}
+
+  label{
+    display:block;
+    font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    color:var(--gray-700);
+    margin-bottom:8px;
+  }
+  .field{margin-bottom:20px;}
+  select, textarea{
+    width:100%;
+    font-family:'Montserrat',sans-serif;
+    font-size:15px;
+    padding:12px 14px;
+    border:1.5px solid var(--gray-300);
+    border-radius:8px;
+    background:var(--white);
+    color:var(--black);
+    resize:vertical;
+  }
+  select:focus, textarea:focus{outline:none;border-color:var(--red);}
+  textarea{min-height:110px;}
+
+  .urgency-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+  .urgency-option{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    border:2px solid var(--gray-300);
+    border-radius:10px;
+    padding:14px 16px;
+    cursor:pointer;
+    transition:all .12s ease;
+  }
+  .urgency-option:hover{border-color:var(--gray-500);}
+  .urgency-option input{margin-top:3px;accent-color:var(--red);width:18px;height:18px;flex-shrink:0;}
+  .urgency-option .label-text{font-weight:800;font-size:15px;margin-bottom:2px;}
+  .urgency-option .desc-text{font-size:13px;color:var(--gray-700);}
+  .urgency-option.high{border-color:#f2c4bb;}
+  .urgency-option.high.selected{border-color:var(--red);background:#fdf1ef;}
+  .urgency-option.high .label-text{color:var(--red);}
+  .urgency-option.medium{border-color:#f0dcae;}
+  .urgency-option.medium.selected{border-color:var(--amber);background:#fdf7e8;}
+  .urgency-option.medium .label-text{color:var(--amber);}
+  .urgency-option.low{border-color:#c3ddc9;}
+  .urgency-option.low.selected{border-color:var(--green);background:#eef8f0;}
+  .urgency-option.low .label-text{color:var(--green);}
+
+  .submit-btn{
+    width:100%;
+    background:var(--red);
+    color:var(--white);
+    border:none;
+    padding:15px;
+    border-radius:9px;
+    font-family:'Montserrat',sans-serif;
+    font-weight:800;
+    font-size:15px;
+    letter-spacing:0.3px;
+    cursor:pointer;
+    transition:opacity .12s ease;
+  }
+  .submit-btn:hover{opacity:0.9;}
+  .submit-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+  .confirm-banner{
+    display:none;
+    background:#eef8f0;
+    border:1.5px solid var(--green);
+    color:#155c2c;
+    padding:14px 16px;
+    border-radius:9px;
+    font-weight:600;
+    font-size:14px;
+    margin-bottom:20px;
+  }
+
+  /* My requests list */
+  .req-list{display:flex;flex-direction:column;gap:12px;}
+  .req-item{
+    border:1.5px solid var(--gray-100);
+    border-radius:10px;
+    padding:14px 16px;
+  }
+  .req-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .req-title{font-weight:700;font-size:14.5px;}
+  .req-desc{font-size:13.5px;color:var(--gray-700);margin:4px 0 8px;line-height:1.4;}
+  .req-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .badge{
+    display:inline-block;
+    font-size:11px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:0.3px;
+    padding:4px 9px;
+    border-radius:20px;
+  }
+  .badge-high{background:#fdf1ef;color:var(--red);}
+  .badge-medium{background:#fdf7e8;color:var(--amber);}
+  .badge-low{background:#eef8f0;color:var(--green);}
+  .status-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:11.5px;
+    font-weight:700;
+    padding:4px 10px;
+    border-radius:20px;
+    background:var(--gray-100);
+    color:var(--gray-700);
+  }
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--gray-500);}
+  .status-New .status-dot{background:#666;}
+  .status-Acknowledged .status-dot{background:#2a6ebb;}
+  .status-Acknowledged{background:#e9f1fb;color:#2a6ebb;}
+  .status-InProgress .status-dot{background:var(--amber);}
+  .status-InProgress{background:#fdf7e8;color:var(--amber);}
+  .status-Resolved .status-dot{background:var(--green);}
+  .status-Resolved{background:#eef8f0;color:var(--green);}
+  .req-date{font-size:11.5px;color:var(--gray-500);}
+  .resolution-note{
+    margin-top:8px;
+    font-size:12.5px;
+    background:var(--gray-50);
+    border-left:3px solid var(--green);
+    padding:8px 10px;
+    border-radius:4px;
+    color:var(--gray-700);
+  }
+  .empty-state{
+    text-align:center;
+    color:var(--gray-500);
+    font-size:13.5px;
+    padding:20px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Cornerstone <span>Tech Help</span></h1>
+  <div id="userChipArea"></div>
+</div>
+
+<div id="signinScreen">
+  <h2>Get help with a tech issue</h2>
+  <p>Sign in with your Cornerstone Google account to submit a request or check the status of one you already sent in.</p>
+  <button class="google-btn" onclick="window.signIn()">
+    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
+    Sign in with Google
+  </button>
+  <div class="domain-error" id="domainError"></div>
+</div>
+
+<div class="container" id="mainApp" style="display:none;">
+
+  <div class="confirm-banner" id="confirmBanner">✓ Your request was submitted! You'll get an email as soon as it's picked up.</div>
+
+  <div class="card">
+    <h2>Submit a Request</h2>
+    <p class="subtitle">Describe the issue and we'll take it from there.</p>
+    <p class="greeting">Hi <b id="greetName">there</b> — what's going on?</p>
+
+    <div class="field">
+      <label for="category">Category</label>
+      <select id="category">
+        <option value="Hardware">Hardware (computer, printer, cables)</option>
+        <option value="Software/App">Software / App</option>
+        <option value="Network/Wifi">Network / Wifi</option>
+        <option value="Projector/Display">Projector / Display / TV</option>
+        <option value="Chromebook">Student Chromebook</option>
+        <option value="Account/Login">Account / Login</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="description">Describe the issue</label>
+      <textarea id="description" placeholder="Be as specific as you can — what's happening, what you were trying to do, any error messages you saw..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Urgency</label>
+      <div class="urgency-grid">
+        <label class="urgency-option high" id="opt-High">
+          <input type="radio" name="urgency" value="High" onchange="window.selectUrgency('High')">
+          <div>
+            <div class="label-text">High</div>
+            <div class="desc-text">Can't do my job right now</div>
+          </div>
+        </label>
+        <label class="urgency-option medium" id="opt-Medium">
+          <input type="radio" name="urgency" value="Medium" onchange="window.selectUrgency('Medium')">
+          <div>
+            <div class="label-text">Medium</div>
+            <div class="desc-text">Can do my job, but it's difficult</div>
+          </div>
+        </label>
+        <label class="urgency-option low" id="opt-Low">
+          <input type="radio" name="urgency" value="Low" onchange="window.selectUrgency('Low')">
+          <div>
+            <div class="label-text">Low</div>
+            <div class="desc-text">Not stopping me, but would help a lot</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="window.submitRequest()">Submit Request</button>
+  </div>
+
+  <div class="card">
+    <h2>My Requests</h2>
+    <p class="subtitle">Live status of what you've submitted.</p>
+    <div class="req-list" id="myRequestsList">
+      <div class="empty-state">No requests yet.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ====================== CONFIGURATION ====================== */
+// Replace with your Firebase project config (cca-it-helpdesk project)
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "cca-it-helpdesk.firebaseapp.com",
+  databaseURL: "https://cca-it-helpdesk-default-rtdb.firebaseio.com",
+  projectId: "cca-it-helpdesk",
+  storageBucket: "cca-it-helpdesk.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const ALLOWED_DOMAIN = "cornerstonek12.org";
+
+// EmailJS
+const EMAILJS_PUBLIC_KEY = "5p2_YtAyJ4vQsjrtT";       // reuse existing public key
+const EMAILJS_SERVICE_ID = "service_ze1dvgp";          // reuse existing service
+const EMAILJS_TEMPLATE_NEW_TO_IT = "template_ithelp_new";      // create this template
+const EMAILJS_TEMPLATE_STATUS_TO_TEACHER = "template_ithelp_status"; // create this template
+const IT_ASSISTANT_EMAIL = "changeme@cornerstonek12.org"; // <-- set to IT assistant's real email
+
+// Google Chat webhook (High urgency only) - leave blank to disable
+const GOOGLE_CHAT_WEBHOOK_URL = "";
+/* ============================================================= */
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+let currentUser = null;
+let selectedUrgency = null;
+
+window.signIn = function(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ hd: ALLOWED_DOMAIN });
+  auth.signInWithPopup(provider).catch(err => {
+    document.getElementById('domainError').textContent = "Sign-in error: " + err.message;
+  });
+};
+
+window.signOutUser = function(){
+  auth.signOut();
+};
+
+auth.onAuthStateChanged(user => {
+  const domainErrorEl = document.getElementById('domainError');
+  domainErrorEl.textContent = "";
+
+  if(user){
+    if(!user.email || !user.email.endsWith("@" + ALLOWED_DOMAIN)){
+      domainErrorEl.textContent = "Please sign in with your @" + ALLOWED_DOMAIN + " account.";
+      auth.signOut();
+      return;
+    }
+    currentUser = user;
+    document.getElementById('signinScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('greetName').textContent = user.displayName ? user.displayName.split(" ")[0] : "there";
+
+    document.getElementById('userChipArea').innerHTML = `
+      <div class="user-chip">
+        <img src="${user.photoURL || ''}" onerror="this.style.display='none'">
+        <span>${user.displayName}</span>
+        <button class="signout-btn" onclick="window.signOutUser()">Sign out</button>
+      </div>`;
+
+    listenToMyRequests(user.uid);
+  } else {
+    currentUser = null;
+    document.getElementById('signinScreen').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('userChipArea').innerHTML = '';
+  }
+});
+
+window.selectUrgency = function(level){
+  selectedUrgency = level;
+  document.querySelectorAll('.urgency-option').forEach(el => el.classList.remove('selected'));
+  document.getElementById('opt-' + level).classList.add('selected');
+};
+
+window.submitRequest = function(){
+  const category = document.getElementById('category').value;
+  const description = document.getElementById('description').value.trim();
+
+  if(!description){
+    alert("Please describe the issue before submitting.");
+    return;
+  }
+  if(!selectedUrgency){
+    alert("Please select an urgency level.");
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = "Submitting...";
+
+  const now = Date.now();
+  const newReq = {
+    teacherUid: currentUser.uid,
+    teacherName: currentUser.displayName,
+    teacherEmail: currentUser.email,
+    category: category,
+    description: description,
+    urgency: selectedUrgency,
+    status: "New",
+    internalNotes: "",
+    resolutionNote: "",
+    createdAt: now,
+    updatedAt: now,
+    statusHistory: [{ status: "New", timestamp: now }]
+  };
+
+  const ref = db.ref('helpRequests').push();
+  ref.set(newReq).then(() => {
+    // Confirmation email to teacher
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_STATUS_TO_TEACHER, {
+      to_email: currentUser.email,
+      teacher_name: currentUser.displayName,
+      status: "Received",
+      category: category,
+      description: description,
+      urgency: selectedUrgency,
+      message: "We've received your request and will take a look soon."
+    }).catch(e => console.error("Teacher confirmation email failed:", e));
+
+    // Notify IT assistant (always)
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_NEW_TO_IT, {
+      to_email: IT_ASSISTANT_EMAIL,
+      teacher_name: currentUser.displayName,
+      teacher_email: currentUser.email,
+      category: category,
+      description: description,
+      urgency: selectedUrgency
+    }).catch(e => console.error("IT notification email failed:", e));
+
+    // High urgency -> also ping Google Chat
+    if(selectedUrgency === "High" && GOOGLE_CHAT_WEBHOOK_URL){
+      fetch(GOOGLE_CHAT_WEBHOOK_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        body: JSON.stringify({
+          text: `🔴 *HIGH URGENCY* tech request from *${currentUser.displayName}*\nCategory: ${category}\n"${description}"`
+        })
+      }).catch(e => console.error("Chat webhook failed:", e));
+    }
+
+    document.getElementById('description').value = "";
+    document.querySelectorAll('input[name="urgency"]').forEach(r => r.checked = false);
+    document.querySelectorAll('.urgency-option').forEach(el => el.classList.remove('selected'));
+    selectedUrgency = null;
+
+    const banner = document.getElementById('confirmBanner');
+    banner.style.display = 'block';
+    setTimeout(() => banner.style.display = 'none', 6000);
+
+  }).catch(err => {
+    alert("Something went wrong submitting your request: " + err.message);
+  }).finally(() => {
+    btn.disabled = false;
+    btn.textContent = "Submit Request";
+  });
+};
+
+function statusClass(status){
+  return status.replace(/\s|\//g, '');
+}
+
+function listenToMyRequests(uid){
+  db.ref('helpRequests').orderByChild('teacherUid').equalTo(uid).on('value', snapshot => {
+    const listEl = document.getElementById('myRequestsList');
+    const data = snapshot.val();
+    if(!data){
+      listEl.innerHTML = '<div class="empty-state">No requests yet.</div>';
+      return;
+    }
+    const items = Object.entries(data).sort((a,b) => b[1].createdAt - a[1].createdAt);
+    listEl.innerHTML = items.map(([id, r]) => {
+      const dateStr = new Date(r.createdAt).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+      const sClass = statusClass(r.status);
+      const resolutionHtml = (r.status === "Resolved" && r.resolutionNote)
+        ? `<div class="resolution-note"><b>Resolution:</b> ${escapeHtml(r.resolutionNote)}</div>`
+        : '';
+      return `
+        <div class="req-item">
+          <div class="req-top">
+            <div class="req-title">${escapeHtml(r.category)}</div>
+            <div class="req-date">${dateStr}</div>
+          </div>
+          <div class="req-desc">${escapeHtml(r.description)}</div>
+          <div class="req-meta">
+            <span class="badge badge-${r.urgency.toLowerCase()}">${r.urgency}</span>
+            <span class="status-pill status-${sClass}"><span class="status-dot"></span>${r.status}</span>
+          </div>
+          ${resolutionHtml}
+        </div>`;
+    }).join('');
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
