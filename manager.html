@@ -361,6 +361,9 @@ const AUTHORIZED_MANAGERS = [
   "aloveday@cornerstonek12.org"
 ];
 
+// Used as the Reply-To on status emails sent to teachers, so replies land with a real person
+const IT_ASSISTANT_EMAIL = "aloveday@cornerstonek12.org";
+
 const EMAILJS_PUBLIC_KEY = "5p2_YtAyJ4vQsjrtT";
 const EMAILJS_SERVICE_ID = "service_ze1dvgp";
 const EMAILJS_TEMPLATE_ID = "template_sq2xzew"; // single flexible template (subject/body built in code)
@@ -621,6 +624,7 @@ Your original request:
 
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
       to_email: req.teacherEmail,
+      reply_to: IT_ASSISTANT_EMAIL,
       email_subject: subject,
       email_body: body
     }).catch(e => console.error("Status email failed:", e));
