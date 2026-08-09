@@ -353,9 +353,9 @@ const firebaseConfig = {
   appId: "1:746779746830:web:c687a2e0c1de7e7281925f"
 };
 
-
 const ALLOWED_DOMAIN = "cornerstonek12.org";
 
+// Restrict dashboard access to these accounts only (add more emails as needed)
 const AUTHORIZED_MANAGERS = [
   "eloveday@cornerstonek12.org",
   "aloveday@cornerstonek12.org"
@@ -366,7 +366,7 @@ const EMAILJS_SERVICE_ID = "service_ze1dvgp";
 const EMAILJS_TEMPLATE_ID = "template_sq2xzew"; // single flexible template (subject/body built in code)
 
 // Google Chat webhook (High urgency status updates only) - leave blank to disable
-const GOOGLE_CHAT_WEBHOOK_URL = "";
+const GOOGLE_CHAT_WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAQAYLs_tlo/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=WtzRz-mV4hYRgcTYWJQO9ovmMzW-GAd8QUteC0ZsSw0";
 /* ============================================================= */
 
 firebase.initializeApp(firebaseConfig);
