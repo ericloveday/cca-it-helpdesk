@@ -376,12 +376,17 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// Sends an email via the Apps Script mailer. Fire-and-forget; failures are logged, not blocking.
+// Sends an email via the Apps Script mailer. Uses GET (not POST) - Apps Script Web Apps
+// redirect every request before running your code, and browsers downgrade POST to GET
+// on that redirect, silently dropping the body. GET avoids this entirely.
 function sendMail(to, subject, body, replyTo){
-  fetch(APPS_SCRIPT_MAILER_URL, {
-    method: "POST",
-    body: JSON.stringify({ secret: MAILER_SECRET, to: to, subject: subject, body: body, replyTo: replyTo || "" })
-  }).catch(e => console.error("Mailer request failed:", e));
+  const url = APPS_SCRIPT_MAILER_URL
+    + "?secret=" + encodeURIComponent(MAILER_SECRET)
+    + "&to=" + encodeURIComponent(to)
+    + "&subject=" + encodeURIComponent(subject)
+    + "&body=" + encodeURIComponent(body)
+    + "&replyTo=" + encodeURIComponent(replyTo || "");
+  fetch(url).catch(e => console.error("Mailer request failed:", e));
 }
 
 let allRequests = {};
