@@ -9,7 +9,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   :root{
     --red:#ce1f07;
@@ -385,10 +384,9 @@ const firebaseConfig = {
 
 const ALLOWED_DOMAIN = "cornerstonek12.org";
 
-// EmailJS
-const EMAILJS_PUBLIC_KEY = "5p2_YtAyJ4vQsjrtT";       // reuse existing public key
-const EMAILJS_SERVICE_ID = "service_ze1dvgp";          // reuse existing service
-const EMAILJS_TEMPLATE_ID = "template_sq2xzew";        // single flexible template (subject/body built in code)
+// Apps Script mailer (replaces EmailJS - sends via aloveday@cornerstonek12.org, ~1500/day quota)
+const APPS_SCRIPT_MAILER_URL = "https://script.google.com/macros/s/AKfycbxTb95VxZhM9sJ1Aatg8zecU-A-1sCr7Bb9vB3YhIHuFzIambjBeeXNPmiPyAnJqn-m/exec";
+const MAILER_SECRET = "cca-help-2026"; // must match MAILER_SECRET in the Apps Script
 const IT_ASSISTANT_EMAIL = "aloveday@cornerstonek12.org";
 
 // Google Chat webhook (High urgency only) - leave blank to disable
@@ -398,7 +396,14 @@ const GOOGLE_CHAT_WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAQAYLs_t
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
-emailjs.init(EMAILJS_PUBLIC_KEY);
+
+// Sends an email via the Apps Script mailer. Fire-and-forget; failures are logged, not blocking.
+function sendMail(to, subject, body, replyTo){
+  fetch(APPS_SCRIPT_MAILER_URL, {
+    method: "POST",
+    body: JSON.stringify({ secret: MAILER_SECRET, to: to, subject: subject, body: body, replyTo: replyTo || "" })
+  }).catch(e => console.error("Mailer request failed:", e));
+}
 
 let currentUser = null;
 let selectedUrgency = null;
@@ -487,28 +492,23 @@ window.submitRequest = function(){
 
   const ref = db.ref('helpRequests').push();
   ref.set(newReq).then(() => {
-    // Confirmation email to teacher
-    const teacherSubject = "Tech Help Request Update: Received";
+    // One confirmation email to teacher - this is the only email they'll get.
+    // Further status changes are visible on the "My Requests" list, not emailed.
+    const teacherSubject = "Tech Help Request Received";
     const teacherBody =
 `Hi ${currentUser.displayName},
 
-Your tech help request has an update:
+We've received your tech help request and will take a look soon.
 
-Status: Received
 Category: ${category}
 Urgency: ${selectedUrgency}
 
-We've received your request and will take a look soon.
+Your request:
+"${description}"
 
-Your original request:
-"${description}"`;
+You can also sign back into the Tech Help tool anytime to see live status under "My Requests."`;
 
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      to_email: currentUser.email,
-      reply_to: IT_ASSISTANT_EMAIL,
-      email_subject: teacherSubject,
-      email_body: teacherBody
-    }).catch(e => console.error("Teacher confirmation email failed:", e));
+    sendMail(currentUser.email, teacherSubject, teacherBody, IT_ASSISTANT_EMAIL);
 
     // Notify IT assistant (always)
     const itSubject = `[${selectedUrgency}] New Tech Help Request — ${currentUser.displayName}`;
@@ -524,12 +524,7 @@ ${description}
 
 Open the dashboard to respond.`;
 
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      to_email: IT_ASSISTANT_EMAIL,
-      reply_to: currentUser.email,
-      email_subject: itSubject,
-      email_body: itBody
-    }).catch(e => console.error("IT notification email failed:", e));
+    sendMail(IT_ASSISTANT_EMAIL, itSubject, itBody, currentUser.email);
 
     // High urgency -> also ping Google Chat
     if(selectedUrgency === "High" && GOOGLE_CHAT_WEBHOOK_URL){
