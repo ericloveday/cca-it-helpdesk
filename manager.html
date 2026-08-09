@@ -9,7 +9,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   :root{
     --red:#ce1f07;
@@ -361,12 +360,13 @@ const AUTHORIZED_MANAGERS = [
   "aloveday@cornerstonek12.org"
 ];
 
-// Used as the Reply-To on status emails sent to teachers, so replies land with a real person
 const IT_ASSISTANT_EMAIL = "aloveday@cornerstonek12.org";
 
-const EMAILJS_PUBLIC_KEY = "5p2_YtAyJ4vQsjrtT";
-const EMAILJS_SERVICE_ID = "service_ze1dvgp";
-const EMAILJS_TEMPLATE_ID = "template_sq2xzew"; // single flexible template (subject/body built in code)
+// Apps Script mailer (replaces EmailJS - sends via aloveday@cornerstonek12.org, ~1500/day quota)
+// Note: status-change emails to teachers were intentionally removed to cut email volume.
+// The mailer is kept here only in case you want to re-enable a specific status email later.
+const APPS_SCRIPT_MAILER_URL = "https://script.google.com/macros/s/AKfycbxTb95VxZhM9sJ1Aatg8zecU-A-1sCr7Bb9vB3YhIHuFzIambjBeeXNPmiPyAnJqn-m/exec";
+const MAILER_SECRET = "cca-help-2026"; // must match MAILER_SECRET in the Apps Script
 
 // Google Chat webhook (High urgency status updates only) - leave blank to disable
 const GOOGLE_CHAT_WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAQAYLs_tlo/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=WtzRz-mV4hYRgcTYWJQO9ovmMzW-GAd8QUteC0ZsSw0";
@@ -375,7 +375,14 @@ const GOOGLE_CHAT_WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAQAYLs_t
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
-emailjs.init(EMAILJS_PUBLIC_KEY);
+
+// Sends an email via the Apps Script mailer. Fire-and-forget; failures are logged, not blocking.
+function sendMail(to, subject, body, replyTo){
+  fetch(APPS_SCRIPT_MAILER_URL, {
+    method: "POST",
+    body: JSON.stringify({ secret: MAILER_SECRET, to: to, subject: subject, body: body, replyTo: replyTo || "" })
+  }).catch(e => console.error("Mailer request failed:", e));
+}
 
 let allRequests = {};
 let currentTab = 'active';
@@ -622,12 +629,7 @@ ${friendlyMsg}
 Your original request:
 "${req.description}"`;
 
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      to_email: req.teacherEmail,
-      reply_to: IT_ASSISTANT_EMAIL,
-      email_subject: subject,
-      email_body: body
-    }).catch(e => console.error("Status email failed:", e));
+    sendMail(req.teacherEmail, subject, body, IT_ASSISTANT_EMAIL);
 
     if(req.urgency === "High" && GOOGLE_CHAT_WEBHOOK_URL){
       fetch(GOOGLE_CHAT_WEBHOOK_URL, {
