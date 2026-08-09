@@ -389,7 +389,7 @@ const ALLOWED_DOMAIN = "cornerstonek12.org";
 const EMAILJS_PUBLIC_KEY = "5p2_YtAyJ4vQsjrtT";       // reuse existing public key
 const EMAILJS_SERVICE_ID = "service_ze1dvgp";          // reuse existing service
 const EMAILJS_TEMPLATE_ID = "template_sq2xzew";        // single flexible template (subject/body built in code)
-const IT_ASSISTANT_EMAIL = "aloveday@cornerstonek12.org"; // <-- set to IT assistant's real email
+const IT_ASSISTANT_EMAIL = "aloveday@cornerstonek12.org";
 
 // Google Chat webhook (High urgency only) - leave blank to disable
 const GOOGLE_CHAT_WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAQAYLs_tlo/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=WtzRz-mV4hYRgcTYWJQO9ovmMzW-GAd8QUteC0ZsSw0";
@@ -505,6 +505,7 @@ Your original request:
 
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
       to_email: currentUser.email,
+      reply_to: IT_ASSISTANT_EMAIL,
       email_subject: teacherSubject,
       email_body: teacherBody
     }).catch(e => console.error("Teacher confirmation email failed:", e));
@@ -525,6 +526,7 @@ Open the dashboard to respond.`;
 
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
       to_email: IT_ASSISTANT_EMAIL,
+      reply_to: currentUser.email,
       email_subject: itSubject,
       email_body: itBody
     }).catch(e => console.error("IT notification email failed:", e));
